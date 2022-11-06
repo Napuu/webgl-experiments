@@ -9,14 +9,16 @@ import Stats from 'stats.js'
 
 
 const resize = (canvas: HTMLCanvasElement) => {
-  canvas.width = window.innerWidth
-  canvas.height = window.innerHeight
+  // const pxRatio = Math.max(Math.floor(window.devicePixelRatio) || 1, 2);
+  const pxRatio = 1
+  console.log(pxRatio)
+  canvas.width = window.innerWidth * pxRatio
+  canvas.height = window.innerHeight * pxRatio
   console.log(document.body.clientHeight)
 }
-
 const stats = new Stats();
 stats.showPanel(0);
-document.body.appendChild(stats.dom);
+// document.body.appendChild(stats.dom);
 let mousedown = false;
 
 let gravityPosition: [number, number] = [0, 0];
@@ -24,6 +26,11 @@ let reset = 0;
 
 const resetCycles = 1;
 
+function randn_bm() {
+  let u = 1 - Math.random(); //Converting [0,1) to (0,1)
+  let v = Math.random();
+  return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+}
 const err = (msg: unknown) => {
   console.warn(msg);
 }
@@ -33,25 +40,24 @@ function main() {
     err("Canvas not found");
     return;
   }
+  window.addEventListener('resize', () => resize(canvas))
   resize(canvas);
   const tap = (ev: any) => {
     if (ev.type === 'mousemove' && !mousedown) return;
     gravityPosition = [ev.layerX, canvas.height - ev.layerY]
     reset = 1;
   }
+  const diff = (ev: any, start: boolean) => {
+    mousedown = start;
+    tap(ev)
+  }
 
-  canvas.addEventListener("mousedown", (ev) => {
-    mousedown = true;
-    tap(ev);
-  });
-  canvas.addEventListener("mouseup", (ev) => {
-    mousedown = false;
-    tap(ev);
-  });
+  canvas.addEventListener("mousedown", (ev) => diff(ev, true));
+  canvas.addEventListener("mouseup", (ev) => diff(ev, false));
   canvas.addEventListener("mousemove", tap);
-  canvas.addEventListener("touchstart", tap);
+  canvas.addEventListener("touchstart", (ev) => diff(ev, true));
   canvas.addEventListener("touchmove", tap);
-  canvas.addEventListener("touchend", tap);
+  canvas.addEventListener("touchend", (ev) => diff(ev, false));
   const gl = canvas.getContext("webgl2");
   if (!gl) {
     err("WebGL2 context not found")
@@ -86,6 +92,7 @@ function main() {
 
   const drawParticlesProgLocs = {
     position: gl.getAttribLocation(drawParticlesProgram, 'position'),
+    velocity: gl.getAttribLocation(drawParticlesProgram, 'velocity'),
     matrix: gl.getUniformLocation(drawParticlesProgram, 'matrix'),
   };
 
@@ -97,11 +104,12 @@ function main() {
     }
     return Math.random() * (max - min) + min;
   };
-  const numParticles = Math.floor((gl.canvas.width * gl.canvas.height) * 0.5);
-  console.log(gl.canvas.width * gl.canvas.height / numParticles)
+  const numParticles = Math.floor((gl.canvas.width * gl.canvas.height) * 0.1);
+  console.log("numParticles", numParticles)
+  console.log("pixels", (gl.canvas.width * gl.canvas.height))
   const createPoints = (num: number, ranges: number[][]) =>
     new Array(num).fill(0).map(_ => ranges.map(range => rand(...(range as [number, number])))).flat();
-  const positions = new Float32Array(createPoints(numParticles, [[canvas.width], [canvas.height]]));
+  const positions = new Float32Array(createPoints(numParticles, [[-canvas.width, canvas.width], [-canvas.height, canvas.height]]));
   const dV = 50;
   const velocities = new Float32Array(createPoints(numParticles, [[-dV, dV], [-dV, dV]]));
 
@@ -157,9 +165,15 @@ function main() {
   ]);
 
   const drawVA1 = makeVertexArray(
-    gl, [[position1Buffer, drawParticlesProgLocs.position]]);
+    gl, [
+    [position1Buffer, drawParticlesProgLocs.position],
+    [velocity1Buffer, drawParticlesProgLocs.velocity]
+  ]);
   const drawVA2 = makeVertexArray(
-    gl, [[position2Buffer, drawParticlesProgLocs.position]]);
+    gl, [
+    [position2Buffer, drawParticlesProgLocs.position],
+    [velocity2Buffer, drawParticlesProgLocs.velocity]
+  ]);
 
   function makeTransformFeedback(gl: WebGL2RenderingContext, buffer: WebGLBuffer) {
     const tf = gl.createTransformFeedback();
@@ -230,20 +244,23 @@ function main() {
 
     const [oldx, oldy] = gravityPosition;
     const threshold = 100;
-    const m = 100;
-    let newx = oldx + (Math.random() - 0.5) * m;
-    let newy = oldy + (Math.random() - 0.5) * m;
+    const steps = 40;
+    const minStep = 50;
+    const mx = Math.max(gl.canvas.width / steps, minStep);
+    const my = Math.max(gl.canvas.height / steps, minStep);
+    let newx = oldx + randn_bm() * mx;
+    let newy = oldy + randn_bm() * my;
     if (oldx < threshold) {
-      newx = threshold + (Math.random() - 0.5) * m;
+      newx = threshold + randn_bm() * mx;
     } else if (oldx > gl.canvas.width - threshold) {
-      newx = gl.canvas.width - threshold + (Math.random() - 0.5) * m;
+      newx = gl.canvas.width - threshold + randn_bm() * mx;
     }
     if (oldy < threshold) {
-      newy = threshold + (Math.random() - 0.5) * m;
-    } else if (oldy > gl.canvas.width - threshold) {
-      newy = gl.canvas.height - threshold + (Math.random() - 0.5) * m;
+      newy = threshold + randn_bm() * my;
+    } else if (oldy > gl.canvas.height - threshold) {
+      newy = gl.canvas.height - threshold + randn_bm() * my;
     }
-    if (!mousedown) 
+    if (!mousedown)
       gravityPosition = [newx, newy]
 
     // compute the new velocities

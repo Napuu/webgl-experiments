@@ -1,6 +1,9 @@
 #version 300 es
 precision highp float;
+in vec4 color;
 out vec4 outColor;
 void main() {
-  outColor = vec4(1, 0, 0, 1);
+  vec2 coord = gl_PointCoord - vec2(1.);
+  if (length(coord) > 1.) discard;
+  outColor = color;
 }

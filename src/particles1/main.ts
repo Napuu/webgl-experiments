@@ -19,6 +19,13 @@ const stats = new Stats();
 stats.showPanel(0);
 document.body.appendChild(stats.dom);
 
+let mousedown = false;
+
+let gravityPosition: [number, number] = [0, 0];
+let reset = 0;
+
+const resetCycles = 1;
+
 const err = (msg: unknown) => {
   console.warn(msg);
 }
@@ -29,6 +36,24 @@ function main() {
     return;
   }
   resize(canvas);
+  const tap = (ev: any) => {
+    if (ev.type === 'mousemove' && !mousedown) return;
+    gravityPosition = [ev.layerX, canvas.height - ev.layerY]
+    reset = 1;
+  }
+
+  canvas.addEventListener("mousedown", (ev) => {
+    mousedown = true;
+    tap(ev);
+  });
+  canvas.addEventListener("mouseup", (ev) => {
+    mousedown = false;
+    tap(ev);
+  });
+  canvas.addEventListener("mousemove", tap);
+  canvas.addEventListener("touchstart", tap);
+  canvas.addEventListener("touchmove", tap);
+  canvas.addEventListener("touchend", tap);
   const gl = canvas.getContext("webgl2");
   if (!gl) {
     err("WebGL2 context not found")
@@ -55,6 +80,8 @@ function main() {
   const updateVelocityPrgLocs = {
     oldPosition: gl.getAttribLocation(updateVelocityProgram, 'oldPosition'),
     oldVelocity: gl.getAttribLocation(updateVelocityProgram, 'oldVelocity'),
+    gravityPosition: gl.getUniformLocation(updateVelocityProgram, 'gravityPosition'),
+    reset: gl.getUniformLocation(updateVelocityProgram, 'reset'),
     canvasDimensions: gl.getUniformLocation(updateVelocityProgram, 'canvasDimensions'),
     deltaTime: gl.getUniformLocation(updateVelocityProgram, 'deltaTime'),
   };
@@ -72,11 +99,12 @@ function main() {
     }
     return Math.random() * (max - min) + min;
   };
-  const numParticles = 100000;
+  const numParticles = 500000;
   const createPoints = (num: number, ranges: number[][]) =>
     new Array(num).fill(0).map(_ => ranges.map(range => rand(...(range as [number, number])))).flat();
   const positions = new Float32Array(createPoints(numParticles, [[canvas.width], [canvas.height]]));
-  const velocities = new Float32Array(createPoints(numParticles, [[0, 0], [0, 0]]));
+  const dV = 50;
+  const velocities = new Float32Array(createPoints(numParticles, [[-dV, dV], [-dV, dV]]));
 
   function makeBuffer(gl: WebGL2RenderingContext, sizeOrData: number | Float32Array, usage: number) {
     const buf = gl.createBuffer();
@@ -172,6 +200,10 @@ function main() {
       err("WebGL2 context lost during rendering?")
       return
     }
+    if (reset > 0) {
+      reset += 1;
+      if (reset > resetCycles) reset = 0;
+    }
     // convert to seconds
     time *= 0.001;
     // Subtract the previous time from the current time
@@ -201,6 +233,8 @@ function main() {
     // compute the new velocities
     gl.useProgram(updateVelocityProgram);
     gl.bindVertexArray(current.updateVelocityVA);
+    gl.uniform2f(updateVelocityPrgLocs.gravityPosition, ...gravityPosition)
+    gl.uniform1i(updateVelocityPrgLocs.reset, reset);
     gl.uniform2f(updateVelocityPrgLocs.canvasDimensions, gl.canvas.width, gl.canvas.height);
     gl.uniform1f(updateVelocityPrgLocs.deltaTime, deltaTime);
 

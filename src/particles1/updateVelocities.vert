@@ -4,24 +4,36 @@ in vec2 oldVelocity;
 
 uniform float deltaTime;
 uniform vec2 canvasDimensions;
+uniform vec2 gravityPosition;
+uniform int reset;
 
 out vec2 newVelocity;
 
 
 void main() {
-  vec2 gravity_pos = canvasDimensions / 2.;
   float threshold = 0.01;
-  // newVelocity = oldVelocity  * 0.99;
-  // newVelocity = oldVelocity;
-  if (newVelocity.x < threshold || newVelocity.y < threshold) {
-    // newVelocity = vec2(500, 1000);
-  }
   
-  vec2 grav_vector = oldPosition - gravity_pos;
-  vec2 normalized_grav_vector = normalize(grav_vector);
-  /*
-  vec2 grav_dist = length(grav_vector);
-  */
+  float maxDist = float(max(canvasDimensions.x, canvasDimensions.y)) * 1.5;
 
-  newVelocity = oldVelocity - ((normalized_grav_vector));
+  vec2 grav_vector = gravityPosition - oldPosition;
+  vec2 normalized_grav_vector = normalize(grav_vector);
+  float grav_dist = length(grav_vector);
+
+  float maxNewVelocity = 200.;
+  if (false && grav_dist < .5) {
+    newVelocity = vec2(0, 0);
+  } else {
+    float grav_dist_scaled = grav_dist * 0.05;
+    newVelocity = oldVelocity + 10.* (normalized_grav_vector / (grav_dist_scaled * grav_dist_scaled));
+    if (length(newVelocity) > maxNewVelocity) {
+      if (reset > 0 && grav_dist < 100.) {
+        newVelocity = vec2(0, 0);
+      } else {
+        newVelocity = normalize(newVelocity) * maxNewVelocity;
+      }
+    }
+  }
+  if (grav_dist > maxDist) {
+    newVelocity = newVelocity + normalized_grav_vector * pow(grav_dist - maxDist, 2.);    
+  }
 }

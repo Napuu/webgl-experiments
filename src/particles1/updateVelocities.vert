@@ -19,20 +19,17 @@ void main() {
   vec2 normalized_grav_vector = normalize(grav_vector);
   float grav_dist = length(grav_vector);
 
-  float maxNewVelocity = 200.;
-  if (false && grav_dist < .5) {
+  float maxNewVelocity = 50.;
+  if (grav_dist < 1.5) {
     newVelocity = vec2(0, 0);
   } else {
-    float grav_dist_scaled = grav_dist * 0.05;
+    float grav_dist_scaled = grav_dist * 0.03;
     newVelocity = oldVelocity + 10.* (normalized_grav_vector / (grav_dist_scaled * grav_dist_scaled));
     if (length(newVelocity) > maxNewVelocity) {
-      if (reset > 0 && grav_dist < 100.) {
-        newVelocity = vec2(0, 0);
-      } else {
-        newVelocity = normalize(newVelocity) * maxNewVelocity;
-      }
+      newVelocity = normalize(newVelocity) * maxNewVelocity;
     }
   }
+  // once everything is too far, apply stronger gravity
   if (grav_dist > maxDist) {
     newVelocity = newVelocity + normalized_grav_vector * pow(grav_dist - maxDist, 2.);    
   }

@@ -3,7 +3,6 @@ import updatePositionFS from "./updateParticles.frag"
 import updateVelocityVS from "./updateVelocities.vert"
 import updateVelocityFS from "./updateVelocities.frag"
 import drawParticlesVS from "./drawParticles.vert"
-
 import drawParticlesFS from "./drawParticles.frag"
 import { createProgram, orthographic } from "../boilerplate"
 import Stats from 'stats.js'
@@ -18,7 +17,6 @@ const resize = (canvas: HTMLCanvasElement) => {
 const stats = new Stats();
 stats.showPanel(0);
 document.body.appendChild(stats.dom);
-
 let mousedown = false;
 
 let gravityPosition: [number, number] = [0, 0];
@@ -99,7 +97,8 @@ function main() {
     }
     return Math.random() * (max - min) + min;
   };
-  const numParticles = 500000;
+  const numParticles = Math.floor((gl.canvas.width * gl.canvas.height) * 0.5);
+  console.log(gl.canvas.width * gl.canvas.height / numParticles)
   const createPoints = (num: number, ranges: number[][]) =>
     new Array(num).fill(0).map(_ => ranges.map(range => rand(...(range as [number, number])))).flat();
   const positions = new Float32Array(createPoints(numParticles, [[canvas.width], [canvas.height]]));
@@ -229,6 +228,23 @@ function main() {
     gl.endTransformFeedback();
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
 
+    const [oldx, oldy] = gravityPosition;
+    const threshold = 100;
+    const m = 100;
+    let newx = oldx + (Math.random() - 0.5) * m;
+    let newy = oldy + (Math.random() - 0.5) * m;
+    if (oldx < threshold) {
+      newx = threshold + (Math.random() - 0.5) * m;
+    } else if (oldx > gl.canvas.width - threshold) {
+      newx = gl.canvas.width - threshold + (Math.random() - 0.5) * m;
+    }
+    if (oldy < threshold) {
+      newy = threshold + (Math.random() - 0.5) * m;
+    } else if (oldy > gl.canvas.width - threshold) {
+      newy = gl.canvas.height - threshold + (Math.random() - 0.5) * m;
+    }
+    if (!mousedown) 
+      gravityPosition = [newx, newy]
 
     // compute the new velocities
     gl.useProgram(updateVelocityProgram);

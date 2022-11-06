@@ -13,8 +13,9 @@ vec2 euclideanModulo(vec2 n, vec2 m) {
 }
 
 void main() {
-  newPosition = euclideanModulo(
-      oldPosition + oldVelocity * deltaTime,
-      canvasDimensions);
+  // newPosition = euclideanModulo(
+  //     oldPosition + oldVelocity * deltaTime,
+  //    canvasDimensions);
+  newPosition = oldPosition + oldVelocity * deltaTime;
   // newVelocity =  oldVelocity; //  * 0.1;
 }

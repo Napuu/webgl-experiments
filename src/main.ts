@@ -46,18 +46,6 @@ function setupWebGL() {
   gl.useProgram(program);
   gl.drawArrays(gl.POINTS, 0, 1);
 
-  /*
-  document.querySelector("canvas")!.addEventListener("click", (evt) => {
-    const clickXRelativeToCanvas = evt.pageX - evt.target.offsetLeft;
-    const clickXinWebGLCoords = 2.0 * (clickXRelativeToCanvas - gl.drawingBufferWidth / 2) / gl.drawingBufferWidth;
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([clickXinWebGLCoords, 1]),
-      gl.STATIC_DRAW,
-    );
-    gl.drawArrays(gl.POINTS, 0, 1);
-  }, false);
-  */
 
   const updateProgram = createProgram(gl, updatePositionVert, updatePositionFrag, ["newPosition"])
   // gl.useProgram(program)

@@ -72,11 +72,11 @@ function main() {
     }
     return Math.random() * (max - min) + min;
   };
-  const numParticles = 10000;
+  const numParticles = 100000;
   const createPoints = (num: number, ranges: number[][]) =>
     new Array(num).fill(0).map(_ => ranges.map(range => rand(...(range as [number, number])))).flat();
   const positions = new Float32Array(createPoints(numParticles, [[canvas.width], [canvas.height]]));
-  const velocities = new Float32Array(createPoints(numParticles, [[-300, 300], [-300, 300]]));
+  const velocities = new Float32Array(createPoints(numParticles, [[0, 0], [0, 0]]));
 
   function makeBuffer(gl: WebGL2RenderingContext, sizeOrData: number | Float32Array, usage: number) {
     const buf = gl.createBuffer();

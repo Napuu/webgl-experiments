@@ -1,56 +1,53 @@
-import updatePositionVS from "./updateParticles.vert"
-import updatePositionFS from "./updateParticles.frag"
-import updateVelocityVS from "./updateVelocities.vert"
-import updateVelocityFS from "./updateVelocities.frag"
-import drawParticlesVS from "./drawParticles.vert"
-import drawParticlesFS from "./drawParticles.frag"
-import { createProgram, orthographic } from "../boilerplate"
-import Stats from 'stats.js'
+import updatePositionVS from "./updateParticles.vert";
+import updatePositionFS from "./updateParticles.frag";
+import updateVelocityVS from "./updateVelocities.vert";
+import updateVelocityFS from "./updateVelocities.frag";
+import drawParticlesVS from "./drawParticles.vert";
+import drawParticlesFS from "./drawParticles.frag";
+import {
+  createProgram,
+  makeBuffer,
+  makeVertexArray,
+  orthographic,
+} from "../webglBoilerplate";
+import Stats from "stats.js";
+import {
+  err,
+  gaussianRandom,
+  randFromRange,
+  resizeCanvasFullscreen,
+} from "../utils";
 
-
-const resize = (canvas: HTMLCanvasElement) => {
-  // const pxRatio = Math.max(Math.floor(window.devicePixelRatio) || 1, 2);
-  const pxRatio = 1
-  console.log(pxRatio)
-  canvas.width = window.innerWidth * pxRatio
-  canvas.height = window.innerHeight * pxRatio
-  console.log(document.body.clientHeight)
-}
 const stats = new Stats();
-stats.showPanel(0);
-// document.body.appendChild(stats.dom);
-let mousedown = false;
+const params = new URLSearchParams(document.location.search);
+if (params.get("stats")) {
+  stats.showPanel(0);
+  document.body.appendChild(stats.dom);
+}
 
+let mousedown = false;
 let gravityPosition: [number, number] = [0, 0];
 let reset = 0;
 
 const resetCycles = 1;
 
-function randn_bm() {
-  let u = 1 - Math.random(); //Converting [0,1) to (0,1)
-  let v = Math.random();
-  return Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
-}
-const err = (msg: unknown) => {
-  console.warn(msg);
-}
 function main() {
   const canvas = document.querySelector("canvas");
   if (!canvas) {
     err("Canvas not found");
     return;
   }
-  window.addEventListener('resize', () => resize(canvas))
-  resize(canvas);
+  window.addEventListener("resize", () => resizeCanvasFullscreen(canvas));
+  resizeCanvasFullscreen(canvas);
   const tap = (ev: any) => {
-    if (ev.type === 'mousemove' && !mousedown) return;
-    gravityPosition = [ev.layerX, canvas.height - ev.layerY]
+    if (ev.type === "mousemove" && !mousedown) return;
+    gravityPosition = [ev.layerX, canvas.height - ev.layerY];
     reset = 1;
-  }
+  };
   const diff = (ev: any, start: boolean) => {
     mousedown = start;
-    tap(ev)
-  }
+    tap(ev);
+  };
 
   canvas.addEventListener("mousedown", (ev) => diff(ev, true));
   canvas.addEventListener("mouseup", (ev) => diff(ev, false));
@@ -60,91 +57,103 @@ function main() {
   canvas.addEventListener("touchend", (ev) => diff(ev, false));
   const gl = canvas.getContext("webgl2");
   if (!gl) {
-    err("WebGL2 context not found")
+    err("WebGL2 context not found");
     return;
   }
 
   const updatePositionProgram = createProgram(
-    gl, updatePositionVS, updatePositionFS, ['newPosition']) as WebGLProgram;
+    gl,
+    updatePositionVS,
+    updatePositionFS,
+    ["newPosition"]
+  ) as WebGLProgram;
   const updateVelocityProgram = createProgram(
-    gl, updateVelocityVS, updateVelocityFS, ['newVelocity']) as WebGLProgram;
+    gl,
+    updateVelocityVS,
+    updateVelocityFS,
+    ["newVelocity"]
+  ) as WebGLProgram;
   const drawParticlesProgram = createProgram(
-    gl, drawParticlesVS, drawParticlesFS) as WebGLProgram;
-  if (!updatePositionProgram || !drawParticlesProgram || !updateVelocityProgram) {
-    err("Program compilation failed")
-    return
+    gl,
+    drawParticlesVS,
+    drawParticlesFS
+  ) as WebGLProgram;
+  if (
+    !updatePositionProgram ||
+    !drawParticlesProgram ||
+    !updateVelocityProgram
+  ) {
+    err("Program compilation failed");
+    return;
   }
 
   const updatePositionPrgLocs = {
-    oldPosition: gl.getAttribLocation(updatePositionProgram, 'oldPosition'),
-    oldVelocity: gl.getAttribLocation(updatePositionProgram, 'oldVelocity'),
-    canvasDimensions: gl.getUniformLocation(updatePositionProgram, 'canvasDimensions'),
-    deltaTime: gl.getUniformLocation(updatePositionProgram, 'deltaTime'),
+    oldPosition: gl.getAttribLocation(updatePositionProgram, "oldPosition"),
+    oldVelocity: gl.getAttribLocation(updatePositionProgram, "oldVelocity"),
+    canvasDimensions: gl.getUniformLocation(
+      updatePositionProgram,
+      "canvasDimensions"
+    ),
+    deltaTime: gl.getUniformLocation(updatePositionProgram, "deltaTime"),
   };
   const updateVelocityPrgLocs = {
-    oldPosition: gl.getAttribLocation(updateVelocityProgram, 'oldPosition'),
-    oldVelocity: gl.getAttribLocation(updateVelocityProgram, 'oldVelocity'),
-    gravityPosition: gl.getUniformLocation(updateVelocityProgram, 'gravityPosition'),
-    reset: gl.getUniformLocation(updateVelocityProgram, 'reset'),
-    canvasDimensions: gl.getUniformLocation(updateVelocityProgram, 'canvasDimensions'),
-    deltaTime: gl.getUniformLocation(updateVelocityProgram, 'deltaTime'),
+    oldPosition: gl.getAttribLocation(updateVelocityProgram, "oldPosition"),
+    oldVelocity: gl.getAttribLocation(updateVelocityProgram, "oldVelocity"),
+    gravityPosition: gl.getUniformLocation(
+      updateVelocityProgram,
+      "gravityPosition"
+    ),
+    reset: gl.getUniformLocation(updateVelocityProgram, "reset"),
+    canvasDimensions: gl.getUniformLocation(
+      updateVelocityProgram,
+      "canvasDimensions"
+    ),
+    deltaTime: gl.getUniformLocation(updateVelocityProgram, "deltaTime"),
   };
 
   const drawParticlesProgLocs = {
-    position: gl.getAttribLocation(drawParticlesProgram, 'position'),
-    velocity: gl.getAttribLocation(drawParticlesProgram, 'velocity'),
-    matrix: gl.getUniformLocation(drawParticlesProgram, 'matrix'),
+    position: gl.getAttribLocation(drawParticlesProgram, "position"),
+    velocity: gl.getAttribLocation(drawParticlesProgram, "velocity"),
+    matrix: gl.getUniformLocation(drawParticlesProgram, "matrix"),
   };
 
-  // create random positions and velocities.
-  const rand = (min: number, max: number) => {
-    if (max === undefined) {
-      max = min;
-      min = 0;
-    }
-    return Math.random() * (max - min) + min;
-  };
-  const numParticles = Math.floor((gl.canvas.width * gl.canvas.height) * 0.1);
-  console.log("numParticles", numParticles)
-  console.log("pixels", (gl.canvas.width * gl.canvas.height))
+  const numParticles = Math.min(
+    Math.floor(gl.canvas.width * gl.canvas.height * 0.1),
+    1000000
+  );
   const createPoints = (num: number, ranges: number[][]) =>
-    new Array(num).fill(0).map(_ => ranges.map(range => rand(...(range as [number, number])))).flat();
-  const positions = new Float32Array(createPoints(numParticles, [[-canvas.width, canvas.width], [-canvas.height, canvas.height]]));
+    new Array(num)
+      .fill(0)
+      .map(() =>
+        ranges.map((range) => randFromRange(...(range as [number, number])))
+      )
+      .flat();
+  const positions = new Float32Array(
+    createPoints(numParticles, [
+      [-canvas.width, canvas.width],
+      [-canvas.height, canvas.height],
+    ])
+  );
   const dV = 50;
-  const velocities = new Float32Array(createPoints(numParticles, [[-dV, dV], [-dV, dV]]));
-
-  function makeBuffer(gl: WebGL2RenderingContext, sizeOrData: number | Float32Array, usage: number) {
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, sizeOrData as any, usage);
-    return buf;
-  }
+  const velocities = new Float32Array(
+    createPoints(numParticles, [
+      [-dV, dV],
+      [-dV, dV],
+    ])
+  );
 
   const position1Buffer = makeBuffer(gl, positions, gl.DYNAMIC_DRAW);
   const position2Buffer = makeBuffer(gl, positions, gl.DYNAMIC_DRAW);
   const velocity1Buffer = makeBuffer(gl, velocities, gl.DYNAMIC_DRAW);
   const velocity2Buffer = makeBuffer(gl, velocities, gl.DYNAMIC_DRAW);
-  if (!position1Buffer || !position2Buffer || !velocity1Buffer || !velocity2Buffer) {
-    err("Something wrong with buffers")
-    return
-  }
-
-  function makeVertexArray(gl: WebGL2RenderingContext, bufLocPairs: [WebGLBuffer, number][]) {
-    const va = gl.createVertexArray();
-    gl.bindVertexArray(va);
-    for (const [buffer, loc] of bufLocPairs) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.enableVertexAttribArray(loc);
-      gl.vertexAttribPointer(
-        loc,      // attribute location
-        2,        // number of elements
-        gl.FLOAT, // type of data
-        false,    // normalize
-        0,        // stride (0 = auto)
-        0,        // offset
-      );
-    }
-    return va;
+  if (
+    !position1Buffer ||
+    !position2Buffer ||
+    !velocity1Buffer ||
+    !velocity2Buffer
+  ) {
+    err("Something wrong with buffers");
+    return;
   }
 
   const updatePositionVA1 = makeVertexArray(gl, [
@@ -164,18 +173,19 @@ function main() {
     [velocity2Buffer, updateVelocityPrgLocs.oldVelocity],
   ]);
 
-  const drawVA1 = makeVertexArray(
-    gl, [
+  const drawVA1 = makeVertexArray(gl, [
     [position1Buffer, drawParticlesProgLocs.position],
-    [velocity1Buffer, drawParticlesProgLocs.velocity]
+    [velocity1Buffer, drawParticlesProgLocs.velocity],
   ]);
-  const drawVA2 = makeVertexArray(
-    gl, [
+  const drawVA2 = makeVertexArray(gl, [
     [position2Buffer, drawParticlesProgLocs.position],
-    [velocity2Buffer, drawParticlesProgLocs.velocity]
+    [velocity2Buffer, drawParticlesProgLocs.velocity],
   ]);
 
-  function makeTransformFeedback(gl: WebGL2RenderingContext, buffer: WebGLBuffer) {
+  function makeTransformFeedback(
+    gl: WebGL2RenderingContext,
+    buffer: WebGLBuffer
+  ) {
     const tf = gl.createTransformFeedback();
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
     gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buffer);
@@ -192,26 +202,26 @@ function main() {
   gl.bindBuffer(gl.TRANSFORM_FEEDBACK_BUFFER, null);
 
   let current = {
-    updatePositionVA: updatePositionVA1,  // read from position1
-    updateVelocityVA: updateVelocityVA1,  // read from position1
-    tfPosition: tf2,                      // write to position2
-    tfVelocity: tf4,                      // write to velocity2 
-    drawVA: drawVA2,              // draw with position2
+    updatePositionVA: updatePositionVA1, // read from position1
+    updateVelocityVA: updateVelocityVA1, // read from position1
+    tfPosition: tf2, // write to position2
+    tfVelocity: tf4, // write to velocity2
+    drawVA: drawVA2, // draw with position2
   };
   let next = {
-    updatePositionVA: updatePositionVA2,  // read from position2
-    updateVelocityVA: updateVelocityVA2,  // read from position1
-    tfPosition: tf1,                      // write to position1
-    tfVelocity: tf3,                      // write to velocity1
-    drawVA: drawVA1,              // draw with position1
+    updatePositionVA: updatePositionVA2, // read from position2
+    updateVelocityVA: updateVelocityVA2, // read from position1
+    tfPosition: tf1, // write to position1
+    tfVelocity: tf3, // write to velocity1
+    drawVA: drawVA1, // draw with position1
   };
 
   let then = 0;
   function render(time: number) {
     stats.begin();
     if (!gl) {
-      err("WebGL2 context lost during rendering?")
-      return
+      err("WebGL2 context lost during rendering?");
+      return;
     }
     if (reset > 0) {
       reset += 1;
@@ -231,7 +241,11 @@ function main() {
     // compute the new positions
     gl.useProgram(updatePositionProgram);
     gl.bindVertexArray(current.updatePositionVA);
-    gl.uniform2f(updatePositionPrgLocs.canvasDimensions, gl.canvas.width, gl.canvas.height);
+    gl.uniform2f(
+      updatePositionPrgLocs.canvasDimensions,
+      gl.canvas.width,
+      gl.canvas.height
+    );
     gl.uniform1f(updatePositionPrgLocs.deltaTime, deltaTime);
 
     gl.enable(gl.RASTERIZER_DISCARD);
@@ -248,27 +262,30 @@ function main() {
     const minStep = 50;
     const mx = Math.max(gl.canvas.width / steps, minStep);
     const my = Math.max(gl.canvas.height / steps, minStep);
-    let newx = oldx + randn_bm() * mx;
-    let newy = oldy + randn_bm() * my;
+    let newx = oldx + gaussianRandom() * mx;
+    let newy = oldy + gaussianRandom() * my;
     if (oldx < threshold) {
-      newx = threshold + randn_bm() * mx;
+      newx = threshold + gaussianRandom() * mx;
     } else if (oldx > gl.canvas.width - threshold) {
-      newx = gl.canvas.width - threshold + randn_bm() * mx;
+      newx = gl.canvas.width - threshold + gaussianRandom() * mx;
     }
     if (oldy < threshold) {
-      newy = threshold + randn_bm() * my;
+      newy = threshold + gaussianRandom() * my;
     } else if (oldy > gl.canvas.height - threshold) {
-      newy = gl.canvas.height - threshold + randn_bm() * my;
+      newy = gl.canvas.height - threshold + gaussianRandom() * my;
     }
-    if (!mousedown)
-      gravityPosition = [newx, newy]
+    if (!mousedown) gravityPosition = [newx, newy];
 
     // compute the new velocities
     gl.useProgram(updateVelocityProgram);
     gl.bindVertexArray(current.updateVelocityVA);
-    gl.uniform2f(updateVelocityPrgLocs.gravityPosition, ...gravityPosition)
+    gl.uniform2f(updateVelocityPrgLocs.gravityPosition, ...gravityPosition);
     gl.uniform1i(updateVelocityPrgLocs.reset, reset);
-    gl.uniform2f(updateVelocityPrgLocs.canvasDimensions, gl.canvas.width, gl.canvas.height);
+    gl.uniform2f(
+      updateVelocityPrgLocs.canvasDimensions,
+      gl.canvas.width,
+      gl.canvas.height
+    );
     gl.uniform1f(updateVelocityPrgLocs.deltaTime, deltaTime);
 
     gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, current.tfVelocity);
@@ -287,7 +304,8 @@ function main() {
     gl.uniformMatrix4fv(
       drawParticlesProgLocs.matrix,
       false,
-      orthographic(0, gl.canvas.width, 0, gl.canvas.height, -1, 1));
+      orthographic(0, gl.canvas.width, 0, gl.canvas.height, -1, 1)
+    );
     gl.drawArrays(gl.POINTS, 0, numParticles);
 
     // swap which buffer we will read from

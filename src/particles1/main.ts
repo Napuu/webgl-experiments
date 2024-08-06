@@ -25,7 +25,7 @@ if (params.get("stats")) {
   document.body.appendChild(stats.dom);
 }
 
-let mousedown = false;
+let isDragging = false;
 let gravityPosition: [number, number] = [0, 0];
 let reset = 0;
 
@@ -39,22 +39,33 @@ function main() {
   }
   window.addEventListener("resize", () => resizeCanvasFullscreen(canvas));
   resizeCanvasFullscreen(canvas);
-  const tap = (ev: any) => {
-    if (ev.type === "mousemove" && !mousedown) return;
-    gravityPosition = [ev.layerX, canvas.height - ev.layerY];
+  const tap = (ev: MouseEvent | TouchEvent) => {
+    if (ev.type === "mousemove" && !isDragging) return;
+    if (ev.type === "touchmove") {
+      const touchEvent = ev as TouchEvent;
+      gravityPosition = [
+        touchEvent.touches[0].clientX,
+        canvas.height - touchEvent.touches[0].clientY,
+      ];
+    } else {
+      const mouseEvent = ev as MouseEvent;
+      gravityPosition = [
+        mouseEvent.clientX,
+        canvas.height - mouseEvent.clientY,
+      ];
+    }
     reset = 1;
   };
-  const diff = (ev: any, start: boolean) => {
-    mousedown = start;
-    tap(ev);
+  const setIsDragging = (_isDragging: boolean) => {
+    isDragging = _isDragging;
   };
 
-  canvas.addEventListener("mousedown", (ev) => diff(ev, true));
-  canvas.addEventListener("mouseup", (ev) => diff(ev, false));
+  canvas.addEventListener("mousedown", () => setIsDragging(true));
+  canvas.addEventListener("mouseup", () => setIsDragging(false));
   canvas.addEventListener("mousemove", tap);
-  canvas.addEventListener("touchstart", (ev) => diff(ev, true));
+  canvas.addEventListener("touchstart", () => setIsDragging(true));
   canvas.addEventListener("touchmove", tap);
-  canvas.addEventListener("touchend", (ev) => diff(ev, false));
+  canvas.addEventListener("touchend", () => setIsDragging(false));
   const gl = canvas.getContext("webgl2");
   if (!gl) {
     err("WebGL2 context not found");
@@ -274,7 +285,7 @@ function main() {
     } else if (oldy > gl.canvas.height - threshold) {
       newy = gl.canvas.height - threshold + gaussianRandom() * my;
     }
-    if (!mousedown) gravityPosition = [newx, newy];
+    if (!isDragging) gravityPosition = [newx, newy];
 
     // compute the new velocities
     gl.useProgram(updateVelocityProgram);

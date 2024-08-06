@@ -17,9 +17,9 @@ void main() {
   gl_Position = matrix * position;
   gl_PointSize = 2.0;
   color = vec4(
-    scale(velocity.x, inMin, inMax, 0.0, 0.9),
-    1.,
-    scale(velocity.y, inMin, inMax, 0.0, 0.9),
+    1.-scale(velocity.x, inMin, inMax, 0.0, 0.9),
+    scale(length(velocity), 0., inMax, 0.0, 0.5),
+    1.-scale(velocity.y, inMin, inMax, 0.0, 0.9),
     1.0
   );
 }

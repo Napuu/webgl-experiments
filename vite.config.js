@@ -9,6 +9,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         particles1: resolve(__dirname, "src/particles1/index.html"),
+        particles2: resolve(__dirname, "src/particles2/index.html"),
         main: resolve(__dirname, "src/index.html"),
       },
     },
@@ -21,8 +22,8 @@ export default defineConfig({
       useEslintrc: false,
       overrideConfig: {
         parser: "@typescript-eslint/parser",
-        plugins: ["prettier"],
-        extends: ["eslint:recommended", "plugin:prettier/recommended"],
+        // plugins: ["prettier"],
+        // extends: ["eslint:recommended", "plugin:prettier/recommended"],
         env: {
             browser: true,
         }

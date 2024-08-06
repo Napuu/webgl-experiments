@@ -39,33 +39,35 @@ function main() {
   }
   window.addEventListener("resize", () => resizeCanvasFullscreen(canvas));
   resizeCanvasFullscreen(canvas);
+  const updateGravityPosition = (x: number, y: number) => {
+    gravityPosition = [x, canvas.height - y];
+  };
   const tap = (ev: MouseEvent | TouchEvent) => {
-    if (ev.type === "mousemove" && !isDragging) return;
-    if (ev.type === "touchmove") {
+    if (ev.type === "touchmove" || ev.type === "touchstart") {
+      ev.preventDefault();
       const touchEvent = ev as TouchEvent;
-      gravityPosition = [
-        touchEvent.touches[0].clientX,
-        canvas.height - touchEvent.touches[0].clientY,
-      ];
-    } else {
+      const touch =
+        ev.type === "touchmove"
+          ? touchEvent.touches[0]
+          : touchEvent.changedTouches[0];
+      updateGravityPosition(touch.clientX, touch.clientY);
+    } else if (ev.type === "mousemove" || ev.type === "mousedown") {
       const mouseEvent = ev as MouseEvent;
-      gravityPosition = [
-        mouseEvent.clientX,
-        canvas.height - mouseEvent.clientY,
-      ];
+      updateGravityPosition(mouseEvent.clientX, mouseEvent.clientY);
     }
     reset = 1;
   };
-  const setIsDragging = (_isDragging: boolean) => {
+  const setDragChange = (ev: MouseEvent | TouchEvent, _isDragging: boolean) => {
     isDragging = _isDragging;
+    tap(ev);
   };
 
-  canvas.addEventListener("mousedown", () => setIsDragging(true));
-  canvas.addEventListener("mouseup", () => setIsDragging(false));
+  canvas.addEventListener("mousedown", (ev) => setDragChange(ev, true));
+  canvas.addEventListener("mouseup", (ev) => setDragChange(ev, false));
   canvas.addEventListener("mousemove", tap);
-  canvas.addEventListener("touchstart", () => setIsDragging(true));
+  canvas.addEventListener("touchstart", (ev) => setDragChange(ev, true));
   canvas.addEventListener("touchmove", tap);
-  canvas.addEventListener("touchend", () => setIsDragging(false));
+  canvas.addEventListener("touchend", (ev) => setDragChange(ev, false));
   const gl = canvas.getContext("webgl2");
   if (!gl) {
     err("WebGL2 context not found");

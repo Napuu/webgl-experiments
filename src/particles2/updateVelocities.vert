@@ -36,6 +36,10 @@ void main() {
   } else {
     float grav_dist_scaled = grav_dist * 0.05;
     newVelocity = oldVelocity + largeScreenFix * 200.* (normalized_grav_vector / (pow(grav_dist_scaled,3.)));
+
+    // float grav_dist_scaled = grav_dist * 0.85;
+    // newVelocity = oldVelocity + largeScreenFix * 200.* (normalized_grav_vector / (pow(grav_dist_scaled, 1.5)));
+
     // if (oldPosition.x < 0.) {
     //   newVelocity = vec2(100., newVelocity.y);
     //   // newVelocity = -newVelocity;

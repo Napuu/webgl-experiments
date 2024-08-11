@@ -5,6 +5,7 @@ in vec2 oldVelocity;
 uniform float deltaTime;
 uniform vec2 canvasDimensions;
 uniform vec2 gravityPosition;
+uniform float gravityMultiplier;
 uniform int reset;
 
 out vec2 newVelocity;
@@ -35,7 +36,7 @@ void main() {
     newVelocity = vec2(0, 0);
   } else {
     float grav_dist_scaled = grav_dist * 0.05;
-    newVelocity = oldVelocity + largeScreenFix * 200.* (normalized_grav_vector / (pow(grav_dist_scaled,3.)));
+    newVelocity = oldVelocity + largeScreenFix * gravityMultiplier * 200.* (normalized_grav_vector / (pow(grav_dist_scaled,3.)));
 
     // float grav_dist_scaled = grav_dist * 0.85;
     // newVelocity = oldVelocity + largeScreenFix * 200.* (normalized_grav_vector / (pow(grav_dist_scaled, 1.5)));

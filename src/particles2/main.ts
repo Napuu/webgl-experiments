@@ -27,6 +27,7 @@ if (params.get("stats")) {
 
 let isDragging = false;
 let gravityPosition: [number, number] = [-1, -1];
+let gravityMultiplier = 0.01;
 let reset = 0;
 
 const resetCycles = 1;

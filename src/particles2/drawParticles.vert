@@ -23,9 +23,10 @@ void main() {
   float normalizedAngle = (angle + PI) / (2.0 * PI);
 
   color = vec4(
+      0.5 * cos(normalizedAngle * 2.0 * PI) +
+      0.5 * sin(normalizedAngle * 2.0 * PI),
       0.5 + 0.5 * cos(normalizedAngle * 2.0 * PI),
       0.5 + 0.5 * sin(normalizedAngle * 2.0 * PI),
-      1.0,
       1.0
   );
 }

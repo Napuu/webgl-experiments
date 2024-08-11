@@ -17,20 +17,15 @@ void main() {
   float inMax = 20.;
   gl_Position = matrix * position;
   gl_PointSize = 2.0;
+  float angle = atan(velocity.y, velocity.x);
+
+  const float PI = 3.14159265359;
+  float normalizedAngle = (angle + PI) / (2.0 * PI);
+
   color = vec4(
-    scale(velocity.x, inMax, inMax, 0., 1.),
-    scale(velocity.y, inMax, inMax, 0., 1.),
-    // scale(length(velocity), 0., 250., 0., 1.),
-    1.,
-    1.0
-    // scale(length(velocity), 0., inMax, 0.0, 0.9)
+      0.5 + 0.5 * cos(normalizedAngle * 2.0 * PI),
+      0.5 + 0.5 * sin(normalizedAngle * 2.0 * PI),
+      1.0,
+      1.0
   );
-  // color = vec4(
-  //   1.-scale(velocity.x, inMin, inMax, 0.1, 0.9),
-  //   // 0.,
-  //   scale(length(velocity), 0., inMax, 0.0, 0.9),
-  //   scale(velocity.y, inMin, inMax, 0.0, 0.9),
-  //   // 1.0
-  //   scale(length(velocity), 0., inMax, 0.0, 0.9)
-  // );
 }

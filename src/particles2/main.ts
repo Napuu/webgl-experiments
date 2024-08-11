@@ -115,6 +115,10 @@ function main() {
       updateVelocityProgram,
       "gravityPosition"
     ),
+    gravityMultiplier: gl.getUniformLocation(
+      updateVelocityProgram,
+      "gravityMultiplier"
+    ),
     reset: gl.getUniformLocation(updateVelocityProgram, "reset"),
     canvasDimensions: gl.getUniformLocation(
       updateVelocityProgram,
@@ -229,7 +233,22 @@ function main() {
   };
 
   let then = 0;
+  let multiplierIdleCount = 0
+  let multiplierExplosionThreshold = 1000
   function render(time: number) {
+    multiplierIdleCount += 1;
+    if (multiplierIdleCount > multiplierExplosionThreshold) {
+      gravityMultiplier += 0.01;
+    } 
+    if (gravityMultiplier > 10) {
+      gravityMultiplier = 0.01;
+      multiplierIdleCount = 0;
+      gravityPosition = [
+        gl!.canvas.width - gravityPosition[0],
+        gl!.canvas.height - gravityPosition[1]
+      ]
+      reset = 1
+    }
     stats.begin();
     if (!gl) {
       err("WebGL2 context lost during rendering?");
@@ -295,6 +314,7 @@ function main() {
     gl.useProgram(updateVelocityProgram);
     gl.bindVertexArray(current.updateVelocityVA);
     gl.uniform2f(updateVelocityPrgLocs.gravityPosition, ...gravityPosition);
+    gl.uniform1f(updateVelocityPrgLocs.gravityMultiplier, gravityMultiplier);
     gl.uniform1i(updateVelocityPrgLocs.reset, reset);
     gl.uniform2f(
       updateVelocityPrgLocs.canvasDimensions,
